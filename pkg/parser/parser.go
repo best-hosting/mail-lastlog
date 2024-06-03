@@ -46,12 +46,18 @@ func Emit(p *P) {
     p.items<- p.Data
 }
 
-func (p *P) Next(f Fn) Fn {
-    if len(p.Match) <= 1 {
-        panic("parser.Next(): Too few submatches")
+func (p *P) NextN(k int, f Fn) Fn {
+    if k < 1 {
+        panic(fmt.Sprintf("parser.NextN(): Error: Can't advance on less, than 1 submatch: %v", k))
+    } else if len(p.Match) <= k {
+        panic(fmt.Sprintf("parser.Next(): Too few submatches: advance on %v requested, but i have only %v (%#v)", k, len(p.Match), p.Match))
     }
-    p.Match = p.Match[1:]
+    p.Match = p.Match[k:]
     return f
+}
+
+func (p *P) Next(f Fn) Fn {
+    return p.NextN(1, f)
 }
 
 func Fail(p *P) Fn {
@@ -74,6 +80,7 @@ func (p *P) Run(s string) <-chan *Result {
 
         p.Match = p.Rx.FindStringSubmatch(s)
         if len(p.Match) > 0 {
+            fmt.Printf("parser.P.Run(): Submatches %#v\n", p.Match)
             for f := p.Next(p.Fn); f != nil; {
                 f = f(p)
             }

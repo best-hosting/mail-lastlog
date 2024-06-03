@@ -39,7 +39,12 @@ func NewLog(file string) (*Log, error) {
     // Parsers are run in the order of matches. And this order is hardcoded in
     // their return values. See below.
     fn := parseTime
-    l.parser = parser.New(`(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) [^ ]+ <= [^ ]+ H=[^ ]+ \[([0-9.]+)\] .* A=[^:]+:([^ ]+)`, fn)
+    // Note, that such usage of submatches as here in IP address regexp is
+    // wrong: i verify IP address in parseIP() anyway, so i need the simplest
+    // regexp, which will capture the longest possible IP (i.e. i don't need
+    // even try to filter out wrong IP-s at regexp level). It's written here
+    // only as example of p.NextN().
+    l.parser = parser.New(`(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) [^ ]+ <= [^ ]+ H=[^ ]+ \[(([0-9]+.){3}[0-9]+)\] .* A=[^:]+:([^ ]+)`, fn)
 
     return &l, nil
 }
@@ -89,7 +94,7 @@ func parseIP(p *parser.P) parser.Fn {
     }
 
     p.Data.IP = IP(v.String())
-    return p.Next(parseUser)
+    return p.NextN(2, parseUser)
 }
 
 func parseUser(p *parser.P) parser.Fn {
