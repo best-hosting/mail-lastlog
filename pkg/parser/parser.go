@@ -10,10 +10,10 @@ import (
 )
 
 type Parser interface {
-    Parse() <-chan RData
+    Parse() <-chan Result
 }
 
-type RData struct {
+type Result struct {
     User User
     IP IP
     Method Method
@@ -23,9 +23,11 @@ type RData struct {
 type P struct {
     Rx *regexp.Regexp
     Fn Fn
-    Match []string
-    Data *RData
-    Items chan *RData
+    Match []string      // Regexp submatches.
+    Last Result         // Last successfully parsed data.
+    Data *Result        // Current incomplete result.
+
+    items chan *Result
 }
 
 func New(rx string, fn Fn) *P {
@@ -38,15 +40,10 @@ func New(rx string, fn Fn) *P {
 
 type Fn func (*P) Fn
 
-func Fail(p *P) Fn {
-    fmt.Printf("parser.Fail(): Failed parse at %v\n", p.Data)
-    return nil
-}
-
-func Done(p *P) Fn {
-    fmt.Printf("parser.Done(): Done with %#v\n", p.Data)
-    p.Items<- p.Data
-    return nil
+func Emit(p *P) {
+    fmt.Printf("parser.Emit(): Emit %#v\n", p.Data)
+    p.Last = *p.Data
+    p.items<- p.Data
 }
 
 func (p *P) Next(f Fn) Fn {
@@ -57,12 +54,23 @@ func (p *P) Next(f Fn) Fn {
     return f
 }
 
-func (p *P) Run(s string) <-chan *RData {
-    p.Data = &RData{}
-    p.Items = make(chan *RData)
+func Fail(p *P) Fn {
+    fmt.Printf("parser.Fail(): Failed parse at %v\n", p.Data)
+    return nil
+}
+
+func Done(p *P) Fn {
+    fmt.Printf("parser.Done(): Done with %#v\n", p.Data)
+    Emit(p)
+    return nil
+}
+
+func (p *P) Run(s string) <-chan *Result {
+    p.Data = &Result{}
+    p.items = make(chan *Result)
 
     go func() {
-        defer close(p.Items)
+        defer close(p.items)
 
         p.Match = p.Rx.FindStringSubmatch(s)
         if len(p.Match) > 0 {
@@ -75,6 +83,6 @@ func (p *P) Run(s string) <-chan *RData {
         }
     }()
 
-    return p.Items
+    return p.items
 }
 

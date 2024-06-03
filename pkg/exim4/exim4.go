@@ -19,8 +19,6 @@ type Log struct {
     input io.Reader
 
     parser *parser.P
-    last time.Time
-    items chan parser.RData
 }
 
 func NewLog(file string) (*Log, error) {
@@ -46,8 +44,8 @@ func NewLog(file string) (*Log, error) {
     return &l, nil
 }
 
-func (l *Log) Parse() <-chan parser.RData {
-    items := make(chan parser.RData)
+func (l *Log) Parse() <-chan parser.Result {
+    items := make(chan parser.Result)
 
     go func() {
         defer close(items)
@@ -55,10 +53,7 @@ func (l *Log) Parse() <-chan parser.RData {
         scanner := bufio.NewScanner(l.input)
         for scanner.Scan() {
             fmt.Printf("Read '%s'\n", scanner.Text())
-            ch := l.parser.Run(scanner.Text())
-            d, ok := <-ch
-            if ok {
-                l.last = d.Time
+            for d := range l.parser.Run(scanner.Text()) {
                 items <- *d
             }
         }
@@ -76,34 +71,36 @@ func parseTime (p *parser.P) parser.Fn {
         fmt.Printf("exim4.parseTime(): Error: %v, skipping\n", err)
         return parser.Fail
     }
-    p.Data.Time = t
 
-    fmt.Printf("time %v\n", p.Data)
+    if t.Before(p.Last.Time) {
+        fmt.Printf("exim4.parseTime(): Warning: Skip record %v as already parsed\n", p.Data)
+        return parser.Fail
+    }
+
+    p.Data.Time = t
     return p.Next(parseIP)
 }
 
 func parseIP(p *parser.P) parser.Fn {
-    if v := net.ParseIP(p.Match[0]); v == nil {
+    v := net.ParseIP(p.Match[0])
+    if v == nil {
         fmt.Printf("exim4.parseIP(): Can't parse ip " + p.Match[0])
         return parser.Fail
-    } else {
-        p.Data.IP = IP(v.String())
     }
 
-    fmt.Printf("ip %v\n", p.Data)
+    p.Data.IP = IP(v.String())
     return p.Next(parseUser)
 }
 
 func parseUser(p *parser.P) parser.Fn {
+    // FIXME: Parse mail address.
     p.Data.User = User(p.Match[0])
 
-    fmt.Printf("user %v\n", p.Data)
     return parseMethod
 }
 
 func parseMethod(p *parser.P) parser.Fn {
     p.Data.Method = "smtp"
-    fmt.Printf("method %v\n", p.Data)
     return parser.Done
 }
 

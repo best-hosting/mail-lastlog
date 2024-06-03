@@ -50,7 +50,7 @@ func (v *UserData) String() string {
 /*
 // ParseTime() parses time in dovecot log, guessing correct year (because
 // dovecot log files do not contain year).
-func parseTime(v *DovecotLog) Parser {
+func parseTime(v *Log) Parser {
     // Parse with current year and fix later, if that's wrong.
     t, err := time.Parse("2006 Jan _2 15:04:05", fmt.Sprintf("%v %s", l.mtime.Year(), v.match[0]))
     if err != nil {
@@ -119,12 +119,12 @@ func main() {
     }
     mtime := fi.ModTime()
     fmt.Printf("mtime = %v\n", mtime.Format("2006/01/02 15:04:06"))
-    l := DovecotLog{mtime: mtime}
+    l := Log{mtime: mtime}
     t, _ := l.parseTime("Oct 21 10:27:23")
     fmt.Printf("t = %v\n", t.Format("2006/01/02 15:04:06"))
     */
 
-    dl, err := dovecot.NewDovecotLog("1.log")
+    dl, err := dovecot.NewLog("1.log")
     if err != nil {
         panic(err)
     }
