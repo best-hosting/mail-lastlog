@@ -20,7 +20,6 @@ type DovecotLog struct {
 
     parser *parser.P
     last time.Time
-    items chan parser.RData
 }
 
 func NewDovecotLog(file string) (*DovecotLog, error) {
@@ -40,17 +39,18 @@ func NewDovecotLog(file string) (*DovecotLog, error) {
 
     // Parsers are run in the order of matches. And this order is hardcoded in
     // their return values. See below.
-    fn := func(p *parser.P) parser.ParseFn { return parseTime(&l, p) }
+    fn := func(p *parser.P) parser.Fn { return parseTime(&l, p) }
     l.parser = parser.New(`(\w+ +\d+ \d+:\d+:\d+) .*(pop3|imap)-login: Login: user=<([^>]+)>, .*, rip=([0-9.]+),`, fn)
 
     return &l, nil
 }
 
+var _ parser.Parser = (*DovecotLog)(nil)
 func (l *DovecotLog) Parse() <-chan parser.RData {
-    l.items = make(chan parser.RData)
+    items := make(chan parser.RData)
 
     go func() {
-        defer close(l.items)
+        defer close(items)
 
         scanner := bufio.NewScanner(l.input)
         for scanner.Scan() {
@@ -59,7 +59,7 @@ func (l *DovecotLog) Parse() <-chan parser.RData {
             d, ok := <-ch
             if ok {
                 l.last = d.Time
-                l.items <- *d
+                items <- *d
             }
         }
         if err := scanner.Err(); err != nil {
@@ -67,16 +67,16 @@ func (l *DovecotLog) Parse() <-chan parser.RData {
         }
     }()
 
-    return l.items
+    return items
 }
 
 // ParseTime() parses time in dovecot log, guessing correct year (because
 // dovecot log files do not contain year).
-func parseTime(l *DovecotLog, p *parser.P) parser.ParseFn {
+func parseTime(l *DovecotLog, p *parser.P) parser.Fn {
     // Parse with current year and fix later, if that's wrong.
     t, err := time.Parse("2006 Jan _2 15:04:05", fmt.Sprintf("%v %s", l.mtime.Year(), p.Match[0]))
     if err != nil {
-        fmt.Printf("Error: %v, skipping\n", err)
+        fmt.Printf("dovecot.parseTime(): Error: %v, skipping\n", err)
         return parser.Fail
     }
     //fmt.Printf("Parsed time %v\n", t.Format("2006/01/02 15:04:06"))
@@ -91,17 +91,17 @@ func parseTime(l *DovecotLog, p *parser.P) parser.ParseFn {
     }
 
     if p.Data.Time.Before(l.last) {
-        fmt.Printf("dovecot.ParseTime(): Skip record %v as already parsed\n", p.Data)
+        fmt.Printf("dovecot.parseTime(): Skip record %v as already parsed\n", p.Data)
         return parser.Fail
     }
 
     return p.Next(parseMethod)
 }
 
-func parseMethod(p *parser.P) parser.ParseFn {
+func parseMethod(p *parser.P) parser.Fn {
     m, err := ToMethod(p.Match[0])
     if err != nil {
-        fmt.Printf("dovecot.ParseMethod(): Failed to parse method with '%v'\n", err)
+        fmt.Printf("dovecot.parseMethod(): Failed to parse method with '%v'\n", err)
         return parser.Fail
     }
     p.Data.Method = m
@@ -109,15 +109,15 @@ func parseMethod(p *parser.P) parser.ParseFn {
     return p.Next(parseUser)
 }
 
-func parseUser(p *parser.P) parser.ParseFn {
+func parseUser(p *parser.P) parser.Fn {
     p.Data.User = User(p.Match[0])
 
     return p.Next(parseIP)
 }
 
-func parseIP(p *parser.P) parser.ParseFn {
+func parseIP(p *parser.P) parser.Fn {
     if v := net.ParseIP(p.Match[0]); v == nil {
-        fmt.Printf("dovecot.ParseIP(): Can't parse ip " + p.Match[0])
+        fmt.Printf("dovecot.parseIP(): Can't parse ip " + p.Match[0])
         return parser.Fail
     } else {
         p.Data.IP = IP(v.String())

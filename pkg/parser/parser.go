@@ -9,6 +9,10 @@ import (
     . "bh/lastlog/pkg/common"
 )
 
+type Parser interface {
+    Parse() <-chan RData
+}
+
 type RData struct {
     User User
     IP IP
@@ -18,13 +22,13 @@ type RData struct {
 
 type P struct {
     Rx *regexp.Regexp
-    Fn ParseFn
+    Fn Fn
     Match []string
     Data *RData
     Items chan *RData
 }
 
-func New(rx string, fn ParseFn) *P {
+func New(rx string, fn Fn) *P {
     p := P {
         Rx: regexp.MustCompile(rx),
         Fn: fn,
@@ -32,20 +36,23 @@ func New(rx string, fn ParseFn) *P {
     return &p
 }
 
-type ParseFn func (*P) ParseFn
+type Fn func (*P) Fn
 
-func Fail(p *P) ParseFn {
+func Fail(p *P) Fn {
     fmt.Printf("parser.Fail(): Failed parse at %v\n", p.Data)
     return nil
 }
 
-func Done(p *P) ParseFn {
+func Done(p *P) Fn {
     fmt.Printf("parser.Done(): Done with %#v\n", p.Data)
     p.Items<- p.Data
     return nil
 }
 
-func (p *P) Next(f ParseFn) ParseFn {
+func (p *P) Next(f Fn) Fn {
+    if len(p.Match) <= 1 {
+        panic("parser.Next(): Too few submatches")
+    }
     p.Match = p.Match[1:]
     return f
 }

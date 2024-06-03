@@ -9,7 +9,9 @@ import (
     "encoding/json"
 
     . "bh/lastlog/pkg/common"
+    "bh/lastlog/pkg/parser"
     "bh/lastlog/pkg/dovecot"
+    "bh/lastlog/pkg/exim4"
 )
 
 type IPData struct {
@@ -71,31 +73,8 @@ func parseTime(v *DovecotLog) Parser {
 }
 */
 
-func main() {
-    allData := make(map[User]*UserData)
-
-    /*
-    f, err := os.Open(file)
-    if err != nil {
-        panic(err)
-    }
-    fi, err := os.Stat(file)
-    if err != nil {
-        panic(err)
-    }
-    mtime := fi.ModTime()
-    fmt.Printf("mtime = %v\n", mtime.Format("2006/01/02 15:04:06"))
-    l := DovecotLog{mtime: mtime}
-    t, _ := l.parseTime("Oct 21 10:27:23")
-    fmt.Printf("t = %v\n", t.Format("2006/01/02 15:04:06"))
-    */
-
-    dl, err := dovecot.NewDovecotLog("1.log")
-    if err != nil {
-        panic(err)
-    }
-    ch := dl.Parse()
-    for d := range ch {
+func readLog(allData map[User]*UserData, dl parser.Parser) {
+    for d := range dl.Parse() {
         if _, ok := allData[d.User]; !ok {
             allData[d.User] = &UserData {
                                 User: d.User,
@@ -124,6 +103,38 @@ func main() {
         }
         fmt.Printf("Curr %v\n", allData)
     }
+}
+
+func main() {
+    allData := make(map[User]*UserData)
+
+    /*
+    f, err := os.Open(file)
+    if err != nil {
+        panic(err)
+    }
+    fi, err := os.Stat(file)
+    if err != nil {
+        panic(err)
+    }
+    mtime := fi.ModTime()
+    fmt.Printf("mtime = %v\n", mtime.Format("2006/01/02 15:04:06"))
+    l := DovecotLog{mtime: mtime}
+    t, _ := l.parseTime("Oct 21 10:27:23")
+    fmt.Printf("t = %v\n", t.Format("2006/01/02 15:04:06"))
+    */
+
+    dl, err := dovecot.NewDovecotLog("1.log")
+    if err != nil {
+        panic(err)
+    }
+    readLog(allData, dl)
+
+    el, err := exim4.NewLog("2.log")
+    if err != nil {
+        panic(err)
+    }
+    readLog(allData, el)
 
     //info := make(LoginData)
 
@@ -192,7 +203,7 @@ func main() {
     */
     //fmt.Printf("%v\n", allData)
 
-    bs, err := json.Marshal(allData)
+    bs, err := json.MarshalIndent(allData, "", "\t")
     if err != nil {
         panic(err)
     }
