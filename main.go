@@ -9,7 +9,8 @@ import (
     "encoding/json"
 
     . "bh/lastlog/pkg/common"
-    "bh/lastlog/pkg/parser"
+    //"bh/lastlog/pkg/parser"
+    "bh/lastlog/pkg/log"
     "bh/lastlog/pkg/dovecot"
     "bh/lastlog/pkg/exim4"
 )
@@ -48,7 +49,7 @@ func (v *UserData) String() string {
 
 type lastlogData map[User]*UserData
 
-func (allData lastlogData) readLog(l parser.Parser) {
+func (allData lastlogData) readLog(l *log.Log[Result]) {
     for d := range l.Parse() {
         if _, ok := allData[d.User]; !ok {
             allData[d.User] = &UserData {
@@ -83,13 +84,13 @@ func (allData lastlogData) readLog(l parser.Parser) {
 func main() {
     allData := lastlogData(make(map[User]*UserData))
 
-    dl, err := dovecot.NewLog("1.log")
+    dl, err := dovecot.NewLog("1.log", time.Time{})
     if err != nil {
         panic(err)
     }
     allData.readLog(dl)
 
-    el, err := exim4.NewLog("2.log")
+    el, err := exim4.NewLog("2.log", time.Time{})
     if err != nil {
         panic(err)
     }

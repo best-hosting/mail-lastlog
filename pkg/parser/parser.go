@@ -3,50 +3,38 @@ package parser
 
 import (
     "fmt"
-    "time"
     "regexp"
-
-    . "bh/lastlog/pkg/common"
 )
 
-type Parser interface {
-    Parse() <-chan Result
+// Parser function.
+type Fn[T any] func (*P[T]) Fn[T]
+
+type P[T any] struct {
+    rx *regexp.Regexp
+    fn Fn[T]
+
+    Match []string  // Regexp submatches.
+    Data T          // Current parsed result.
+
+    items chan T
 }
 
-type Result struct {
-    User User
-    IP IP
-    Method Method
-    Time time.Time
-}
-
-type P struct {
-    Rx *regexp.Regexp
-    Fn Fn
-    Match []string      // Regexp submatches.
-    Last Result         // Last successfully parsed data.
-    Data *Result        // Current incomplete result.
-
-    items chan *Result
-}
-
-func New(rx string, fn Fn) *P {
-    p := P {
-        Rx: regexp.MustCompile(rx),
-        Fn: fn,
+func NewP[T any](rx string, fn Fn[T]) *P[T] {
+    p := P[T] {
+        rx: regexp.MustCompile(rx),
+        fn: fn,
     }
     return &p
 }
 
-type Fn func (*P) Fn
-
-func Emit(p *P) {
+// Emit() sends current parsed data to results channel.
+func (p *P[T]) Emit() {
     fmt.Printf("parser.Emit(): Emit %#v\n", p.Data)
-    p.Last = *p.Data
     p.items<- p.Data
 }
 
-func (p *P) NextN(k int, f Fn) Fn {
+// NextN() advances 0 position in submatches slice 'Match' on k.
+func (p *P[T]) NextN(k int, f Fn[T]) Fn[T] {
     if k < 1 {
         panic(fmt.Sprintf("parser.NextN(): Error: Can't advance on less, than 1 submatch: %v", k))
     } else if len(p.Match) <= k {
@@ -56,32 +44,35 @@ func (p *P) NextN(k int, f Fn) Fn {
     return f
 }
 
-func (p *P) Next(f Fn) Fn {
+// Next() advances 0 position in submatches slice 'Match' on 1.
+func (p *P[T]) Next(f Fn[T]) Fn[T] {
     return p.NextN(1, f)
 }
 
-func Fail(p *P) Fn {
-    fmt.Printf("parser.Fail(): Failed parse at %v\n", p.Data)
+// Fail() is 'Fn', which terminates parsing discarding current result.
+func Fail[T any](p *P[T]) Fn[T] {
+    fmt.Printf("parser.Fail(): Failed to parse with %v\n", p.Data)
     return nil
 }
 
-func Done(p *P) Fn {
+// Done() is 'Fn', which terminates parsing sending current result.
+func Done[T any](p *P[T]) Fn[T] {
     fmt.Printf("parser.Done(): Done with %#v\n", p.Data)
-    Emit(p)
+    p.Emit()
     return nil
 }
 
-func (p *P) Run(s string) <-chan *Result {
-    p.Data = &Result{}
-    p.items = make(chan *Result)
+// Run() starts async parsing by calling specified parsing function.
+func (p *P[T]) Run(s string) <-chan T {
+    p.items = make(chan T)
 
     go func() {
         defer close(p.items)
 
-        p.Match = p.Rx.FindStringSubmatch(s)
+        p.Match = p.rx.FindStringSubmatch(s)
         if len(p.Match) > 0 {
             fmt.Printf("parser.P.Run(): Submatches %#v\n", p.Match)
-            for f := p.Next(p.Fn); f != nil; {
+            for f := p.Next(p.fn); f != nil; {
                 f = f(p)
             }
 

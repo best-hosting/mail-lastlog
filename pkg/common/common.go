@@ -3,6 +3,7 @@ package common
 
 import (
     "fmt"
+    "time"
 )
 
 type User string
@@ -26,3 +27,9 @@ func ToMethod(v string) (Method, error) {
     return Unknown, fmt.Errorf("Unknown method %v", v)
 }
 
+type Result struct {
+    User User
+    IP IP
+    Method Method
+    Time time.Time
+}
