@@ -4,6 +4,8 @@ package common
 import (
     "fmt"
     "time"
+
+    "bh/lastlog/pkg/log"
 )
 
 type User string
@@ -33,3 +35,7 @@ type Result struct {
     Method Method
     Time time.Time
 }
+
+var _ log.HasTime = (*Result)(nil)
+func (r Result) GetTime() time.Time { return r.Time }
+

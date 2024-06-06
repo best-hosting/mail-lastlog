@@ -12,8 +12,8 @@ import (
     "bh/lastlog/pkg/log"
 )
 
-func NewLog(file string, last time.Time) (*log.Log[Result], error) {
-    l := log.Log[Result]{}
+func NewLog(file string, last time.Time) (*log.L[Result], error) {
+    l := log.L[Result]{}
 
     f, err := os.Open(file)
     if err != nil {
@@ -37,7 +37,7 @@ func NewLog(file string, last time.Time) (*log.Log[Result], error) {
 func parseTime (last time.Time, p *parser.P[Result]) parser.Fn[Result] {
     t, err := time.Parse("2006-01-02 15:04:05", p.Match[0])
     if err != nil {
-        fmt.Printf("exim4.parseTime(): Error: %v, skipping\n", err)
+        fmt.Printf("exim4.parseTime(): Error: Failed to parse time with '%v'\n", err)
         return parser.Fail
     }
 

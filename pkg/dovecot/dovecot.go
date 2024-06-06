@@ -12,8 +12,8 @@ import (
     "bh/lastlog/pkg/log"
 )
 
-func NewLog(file string, last time.Time) (*log.Log[Result], error) {
-    l := log.Log[Result]{Last: last}
+func NewLog(file string, last time.Time) (*log.L[Result], error) {
+    l := log.L[Result]{Last: last}
 
     fi, err := os.Stat(file)
     if err != nil {
@@ -30,6 +30,8 @@ func NewLog(file string, last time.Time) (*log.Log[Result], error) {
     // their return values. See below.
     fn := func(p *parser.P[Result]) parser.Fn[Result] {
         p.Data = Result{}
+        // FIXME: Should it be pointer? Or otherwise how new last time will be
+        // seen py parseTime() ?
         return parseTime(fi.ModTime(), l.Last, p)
     }
     l.Parser = parser.NewP(`(\w+ +\d+ \d+:\d+:\d+) .*(pop3|imap)-login: Login: user=<([^>]+)>, .*, rip=([0-9.]+),`, fn)
@@ -46,7 +48,7 @@ func parseTime(mtime time.Time, last time.Time, p *parser.P[Result]) parser.Fn[R
     // Parse with current year and fix later, if that's wrong.
     t, err := time.Parse("2006 Jan _2 15:04:05", fmt.Sprintf("%v %s", mtime.Year(), p.Match[0]))
     if err != nil {
-        fmt.Printf("dovecot.parseTime(): Error: %v, skipping\n", err)
+        fmt.Printf("dovecot.parseTime(): Error: Failed to parse time with '%v'\n", err)
         return parser.Fail
     }
     //fmt.Printf("Parsed time %v\n", t.Format("2006/01/02 15:04:06"))
@@ -70,7 +72,7 @@ func parseTime(mtime time.Time, last time.Time, p *parser.P[Result]) parser.Fn[R
 func parseMethod(p *parser.P[Result]) parser.Fn[Result] {
     m, err := ToMethod(p.Match[0])
     if err != nil {
-        fmt.Printf("dovecot.parseMethod(): Failed to parse method with '%v'\n", err)
+        fmt.Printf("dovecot.parseMethod(): Error: Failed to parse method with '%v'\n", err)
         return parser.Fail
     }
     p.Data.Method = m
@@ -87,7 +89,7 @@ func parseUser(p *parser.P[Result]) parser.Fn[Result] {
 func parseIP(p *parser.P[Result]) parser.Fn[Result] {
     v := net.ParseIP(p.Match[0])
     if v == nil {
-        fmt.Printf("dovecot.parseIP(): Can't parse ip " + p.Match[0])
+        fmt.Printf("dovecot.parseIP(): Error: Can't parse ip " + p.Match[0])
         return parser.Fail
     }
 

@@ -10,16 +10,20 @@ import (
     "bh/lastlog/pkg/parser"
 )
 
-type Log[T any] struct {
+type HasTime interface {
+    GetTime() time.Time
+}
+
+type L[T HasTime] struct {
     Input io.Reader
     Parser *parser.P[T]
     Last time.Time
 }
 
-// Parse() reads 'Input' reader line by line sequentially, calls 'Parser'
-// parser on each line and resends its results to channel. Line parsers are
-// running synchronously.
-func (l *Log[T]) Parse() <-chan T {
+// Parse() reads 'L.Input' reader line by line calling 'L.Parser' on each
+// line and resending its results to returned channel. Line parsers are run
+// synchronously. Timestamp returned by last parser is saved in 'L.Last'.
+func (l *L[T]) Parse() <-chan T {
     items := make(chan T)
 
     go func() {
@@ -27,13 +31,17 @@ func (l *Log[T]) Parse() <-chan T {
 
         scanner := bufio.NewScanner(l.Input)
         for scanner.Scan() {
-            fmt.Printf("Read '%s'\n", scanner.Text())
+            fmt.Printf("log.L.Parse(): Read '%s'\n", scanner.Text())
             for d := range l.Parser.Run(scanner.Text()) {
+                // FIXME: Should i check, that new last time is after previous
+                // one? And if it is, what to do? Discard result?
+                l.Last = d.GetTime()
                 items <- d
             }
         }
+
         if err := scanner.Err(); err != nil {
-            fmt.Printf("dovecot.Parse(): Scanner error %v\n", err)
+            panic(fmt.Sprintf("log.L.Parse(): Scanner error %v\n", err))
         }
     }()
 
