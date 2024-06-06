@@ -8,7 +8,7 @@ import (
     "strings"
     "encoding/json"
 
-    . "bh/lastlog/pkg/common"
+    . "bh/lastlog/pkg/types"
     //"bh/lastlog/pkg/parser"
     "bh/lastlog/pkg/log"
     "bh/lastlog/pkg/dovecot"
@@ -49,35 +49,44 @@ func (v *UserData) String() string {
 
 type lastlogData map[User]*UserData
 
-func (allData lastlogData) readLog(l *log.Log[Result]) {
-    for d := range l.Parse() {
-        if _, ok := allData[d.User]; !ok {
-            allData[d.User] = &UserData {
-                                User: d.User,
-                                Data: make(map[IP]map[Method]*IPData),
-                            }
-        }
-        ud := allData[d.User]
+func (allData lastlogData) Add(d *Result) {
+    if _, ok := allData[d.User]; !ok {
+        allData[d.User] = &UserData {
+                            User: d.User,
+                            Data: make(map[IP]map[Method]*IPData),
+                        }
+    }
+    ud := allData[d.User]
 
-        if _, ok := ud.Data[d.IP]; !ok {
-            ud.Data[d.IP] = make(map[Method]*IPData)
-        }
+    if _, ok := ud.Data[d.IP]; !ok {
+        ud.Data[d.IP] = make(map[Method]*IPData)
+    }
 
-        if v, ok := ud.Data[d.IP][d.Method]; !ok {
-            v = &IPData {
-                    IP: d.IP,
-                    Method: d.Method,
-                    Last: d.Time,
-                    Count: 1,
-                }
-            ud.Data[d.IP][d.Method] = v
-            ud.Last = v
-        } else {
+    if v, ok := ud.Data[d.IP][d.Method]; !ok {
+        v = &IPData {
+                IP: d.IP,
+                Method: d.Method,
+                Last: d.Time,
+                Count: 1,
+            }
+        ud.Data[d.IP][d.Method] = v
+        ud.Last = v
+    } else {
+        v.Count += 1
+        // FIXME: Should i check, that time does not go backward?
+        if d.Time.After(v.Last) {
             v.Last = d.Time
-            v.Count += 1
+        }
+        if d.Time.After(ud.Last.Last) {
             ud.Last = v
         }
-        fmt.Printf("Curr %v\n", allData)
+    }
+    fmt.Printf("Curr %v\n", allData)
+}
+
+func (allData lastlogData) readLog(l *log.L[Result]) {
+    for d := range l.Parse() {
+        allData.Add(&d)
     }
 }
 

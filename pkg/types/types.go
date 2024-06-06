@@ -1,5 +1,5 @@
 
-package common
+package types
 
 import (
     "fmt"

@@ -8,3 +8,9 @@ type Store struct {
 }
 */
 
+func readDovecotLogs(files...) {
+}
+
+func readExim4Logs(files...) {
+}
+
