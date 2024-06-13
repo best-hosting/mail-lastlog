@@ -12,7 +12,8 @@ import (
     //"bh/lastlog/pkg/parser"
     "bh/lastlog/pkg/log"
     "bh/lastlog/pkg/dovecot"
-    "bh/lastlog/pkg/exim4"
+    "bh/lastlog/pkg/intervals"
+    //"bh/lastlog/pkg/exim4"
 )
 
 type IPData struct {
@@ -47,16 +48,19 @@ func (v *UserData) String() string {
 // may have several methods used) or split by method.
 
 
-type lastlogData map[User]*UserData
+type lastlogData struct {
+    Data map[User]*UserData
+    Intervals map[string]*intervals.Intervals[Time, Result]
+}
 
-func (allData lastlogData) Add(d *Result) {
-    if _, ok := allData[d.User]; !ok {
-        allData[d.User] = &UserData {
+func (all *lastlogData) Add(d *Result) {
+    if _, ok := all.Data[d.User]; !ok {
+        all.Data[d.User] = &UserData {
                             User: d.User,
                             Data: make(map[IP]map[Method]*IPData),
                         }
     }
-    ud := allData[d.User]
+    ud := all.Data[d.User]
 
     if _, ok := ud.Data[d.IP]; !ok {
         ud.Data[d.IP] = make(map[Method]*IPData)
@@ -81,31 +85,55 @@ func (allData lastlogData) Add(d *Result) {
             ud.Last = v
         }
     }
-    fmt.Printf("Curr %v\n", allData)
+    fmt.Printf("Curr %v\n", all.Data)
 }
 
-func (allData lastlogData) readLog(l *log.L[Result]) {
-    for d := range l.Parse() {
-        allData.Add(&d)
+func (all *lastlogData) readLogs(l *log.L[Time, Result], files []string) {
+    for _, f := range files {
+        if err := log.Open[Result](l, f); err != nil {
+            panic(err)
+        }
+
+        for d := range l.Parse() {
+            all.Add(&d)
+        }
     }
+    //all.Intervals[file] = &l.Intervals
+}
+
+type Config struct {
+    DovecotLogs []string
+    Exim4Logs []string
 }
 
 func main() {
-    allData := lastlogData(make(map[User]*UserData))
+    all := lastlogData {
+        Data: make(map[User]*UserData),
+        Intervals: make(map[string]*intervals.Intervals[Time, Result]),
+    }
 
-    dl, err := dovecot.NewLog("1.log", time.Time{})
+    cf := Config {
+        DovecotLogs: []string{ "1.log" },
+        Exim4Logs: []string{ "2.log" },
+    }
+
+    all.Intervals["Dovecot"] = &intervals.Intervals[Time, Result]{make([]intervals.Interval[Time], 0)}
+    dl := dovecot.NewLog(all.Intervals["Dovecot"])
+    all.readLogs(dl, cf.DovecotLogs)
+    // FIXME: Parse corresponding log's part of json db using corresponding
+    // package's parser. And serialize in the same way.
+    // Or just use Intervals.pkg.{ []file, I } for save.
+    fmt.Println(all.Intervals["1.log"])
+
+    /*
+    el, err := exim4.NewLog("2.log")
     if err != nil {
         panic(err)
     }
-    allData.readLog(dl)
+    all.readLog(el)
+    */
 
-    el, err := exim4.NewLog("2.log", time.Time{})
-    if err != nil {
-        panic(err)
-    }
-    allData.readLog(el)
-
-    bs, err := json.MarshalIndent(allData, "", "\t")
+    bs, err := json.MarshalIndent(all, "", "\t")
     if err != nil {
         panic(err)
     }

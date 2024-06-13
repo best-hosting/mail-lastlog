@@ -2,49 +2,34 @@
 package dovecot
 
 import (
-    "os"
     "fmt"
     "time"
     "net"
 
     . "bh/lastlog/pkg/types"
     "bh/lastlog/pkg/parser"
+    "bh/lastlog/pkg/intervals"
     "bh/lastlog/pkg/log"
 )
 
-func NewLog(file string, last time.Time) (*log.L[Result], error) {
-    l := log.L[Result]{Last: last}
-
-    fi, err := os.Stat(file)
-    if err != nil {
-        return nil, err
-    }
-
-    f, err := os.Open(file)
-    if err != nil {
-        return nil, err
-    }
-    l.Input = f
+func NewLog(i *intervals.Intervals[Time, Result]) *log.L[Time, Result] {
+    l := log.L[Time, Result]{}
+    l.Intervals = i
 
     // Parsers are run in the order of matches. And this order is hardcoded in
     // their return values. See below.
     fn := func(p *parser.P[Result]) parser.Fn[Result] {
         p.Data = Result{}
-        // FIXME: Should it be pointer? Or otherwise how new last time will be
-        // seen py parseTime() ?
-        return parseTime(fi.ModTime(), l.Last, p)
+        return parseTime(&l.ModTime, p)
     }
     l.Parser = parser.NewP(`(\w+ +\d+ \d+:\d+:\d+) .*(pop3|imap)-login: Login: user=<([^>]+)>, .*, rip=([0-9.]+),`, fn)
 
-    return &l, nil
+    return &l
 }
-
-// FIXME:
-// func NewTailLog() ....
 
 // ParseTime() parses time in dovecot log, guessing correct year (because
 // dovecot log files do not contain year).
-func parseTime(mtime time.Time, last time.Time, p *parser.P[Result]) parser.Fn[Result] {
+func parseTime(mtime *Time, p *parser.P[Result]) parser.Fn[Result] {
     // Parse with current year and fix later, if that's wrong.
     t, err := time.Parse("2006 Jan _2 15:04:05", fmt.Sprintf("%v %s", mtime.Year(), p.Match[0]))
     if err != nil {
@@ -56,13 +41,8 @@ func parseTime(mtime time.Time, last time.Time, p *parser.P[Result]) parser.Fn[R
     // File mtime should always be after any timestamp inside file. If it's
     // not the case, record's timestamp is from previous year (this is only
     // true, if file contains strictly less, than a year of data, though).
-    if t.After(mtime) {
+    if t.After(mtime.Time) {
         t = t.AddDate(-1, 0, 0)
-    }
-
-    if t.Before(last) {
-        fmt.Printf("dovecot.parseTime(): Warning: Skip record %v as already parsed\n", p.Data)
-        return parser.Fail
     }
 
     p.Data.Time = t
