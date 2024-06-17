@@ -34,7 +34,7 @@ func (iv *Intervals[T, K]) Filter(out chan<- K, in <-chan K, last T) {
         iv.I = make([]I[T], 0)
     }
     ts := iv.I
-    fmt.Printf("intervals.FilterBy(): ## Started with intervals %v\n", ts)
+    fmt.Printf("intervals.FilterBy(): ## Started with last %v, and intervals %v\n", last, ts)
     v, ok := <-in
     if !ok {
         fmt.Printf("intervals.FilterBy(): End of stream\n")

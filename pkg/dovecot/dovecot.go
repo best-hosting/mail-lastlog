@@ -35,13 +35,14 @@ func NewLog(i *intervals.Intervals[Time, Result]) *log.L[Time, Result] {
 // dovecot log files do not contain year).
 func parseTime(mtime *Time, p *parser.P[Result]) parser.Fn[Result] {
     // Parse with current year and fix later, if that's wrong.
-    t, err := time.Parse("2006 Jan _2 15:04:05", fmt.Sprintf("%v %s", mtime.Year(), p.Match[0]))
+    t, err := time.ParseInLocation("2006 Jan _2 15:04:05", fmt.Sprintf("%v %s", mtime.Year(), p.Match[0]), time.Local)
     if err != nil {
         fmt.Printf("dovecot.parseTime(): Error: Failed to parse time with '%v'\n", err)
         return parser.Fail
     }
     //fmt.Printf("Parsed time %v\n", t.Format("2006/01/02 15:04:06"))
 
+    fmt.Printf("dovecot.parseTime(): Got mtime %v\n", mtime)
     // File mtime should always be after any timestamp inside file. If it's
     // not the case, record's timestamp is from previous year (this is only
     // true, if file contains strictly less, than a year of data, though).
