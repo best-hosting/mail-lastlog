@@ -43,11 +43,11 @@ func (l *L[T, K]) Parse() <-chan K {
         //  te of choosed interval. If mtime is before, shortcicuit parsing.
         for scanner.Scan() {
             fmt.Printf("log.L.Parse(): Read '%s'\n", scanner.Text())
+            // FIXME: Send 'filterIn' channel directly to parser instead of
+            // resending its results here.
             ch := l.Parser.Run(scanner.Text())
             //l.Parser.Run(filterIn, scanner.Text())
             for d := range ch {
-                // FIXME: Should i check, that new last time is after previous
-                // one? And if it is, what to do? Discard result?
                 select {
                 case filterIn<- d:
                 case <-done:
@@ -74,7 +74,8 @@ func (l *L[T, K]) Parse() <-chan K {
     return upstream
 }
 
-func Open[K ToOrd[Time]](l *L[Time, K], file string) error {
+// TODO: Open gzip-ed files properly.
+func OpenFile[K ToOrd[Time]](l *L[Time, K], file string) error {
     fi, err := os.Stat(file)
     if err != nil {
         return err

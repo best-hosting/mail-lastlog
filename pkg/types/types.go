@@ -32,7 +32,7 @@ type Time struct {
 }
 
 func (t Time) String() string {
-    return t.Format("2006/02/03 15:04:06")
+    return t.Format("2006/01/02 15:04:06")
 }
 
 var _ Ord[Time] = Time{}
@@ -40,16 +40,17 @@ func (t Time) Lt(t1 Time) bool { return t.Before(t1.Time) }
 func (t Time) Le(t1 Time) bool { return t.Lt(t1) || t.Equal(t1.Time) }
 
 
+// FIXME: Use net/mail.Address.
 type User string
 
 type IP string
 
 type Method string
+var UnknownMethod Method = ""
 var Imap Method = "imap"
 var Pop3 Method = "pop3"
 var Smtp Method = "smtp"
 var Web  Method = "web"
-var Unknown Method = ""
 
 func ToMethod(v string) (Method, error) {
     switch v {
@@ -58,7 +59,7 @@ func ToMethod(v string) (Method, error) {
         case "smtp": return Smtp, nil
         case "web": return Web, nil
     }
-    return Unknown, fmt.Errorf("Unknown method %v", v)
+    return UnknownMethod, fmt.Errorf("Unknown method %v", v)
 }
 
 type Result struct {

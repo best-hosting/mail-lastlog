@@ -14,7 +14,11 @@ import (
 
 func NewLog(i *intervals.Intervals[Time, Result]) *log.L[Time, Result] {
     l := log.L[Time, Result]{}
-    l.Intervals = i
+    if i == nil {
+        l.Intervals = &intervals.Intervals[Time, Result]{}
+    } else {
+        l.Intervals = i
+    }
 
     // Parsers are run in the order of matches. And this order is hardcoded in
     // their return values. See below.
