@@ -29,7 +29,9 @@ func (l *L[T, K]) Parse() <-chan K {
     filterIn := make(chan K)
 
     done := make(chan any)
+    confirmDone := make(chan any)
     go func() {
+        defer close(confirmDone)
         defer close(filterIn)
 
         scanner := bufio.NewScanner(l.Input)
@@ -46,6 +48,7 @@ func (l *L[T, K]) Parse() <-chan K {
             // FIXME: Send 'filterIn' channel directly to parser instead of
             // resending its results here.
             ch := l.Parser.Run(scanner.Text())
+            fmt.Printf("----- Channel opened %p, %p\n", ch, &l.Parser.Data)
             //l.Parser.Run(filterIn, scanner.Text())
             for d := range ch {
                 select {
@@ -55,6 +58,10 @@ func (l *L[T, K]) Parse() <-chan K {
                     }
                     return
                 }
+            }
+            _, ok := <- ch
+            if !ok {
+                fmt.Printf("----- Channel CLOSED %p\n", ch)
             }
         }
 
@@ -69,6 +76,8 @@ func (l *L[T, K]) Parse() <-chan K {
         //l.Intervals = intervals.FilterBy(l.Intervals, filterIn, upstream, l.ModTime)
         l.Intervals.Filter(upstream, filterIn, l.ModTime)
         close(done)
+        // FIXME: Do not use this sync hack!
+        <- confirmDone
     }()
 
     return upstream
