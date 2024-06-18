@@ -90,6 +90,7 @@ func writeJson(file string, v any) error {
     return nil
 }
 
+// TODO: Write tests running against test/data .
 func main() {
     flag.Parse()
 
