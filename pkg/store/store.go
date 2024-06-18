@@ -102,6 +102,7 @@ func (s *Store) ReadLogs(l *log.L[Time, Result], files []string) {
                 return
             }
         }()
+
         for d := range ch {
             s.Add(&d)
         }

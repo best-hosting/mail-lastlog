@@ -27,11 +27,19 @@ func (l *L[T, K]) Parse(up chan<- K) error {
     filterIn := make(chan K)
 
     done := make(chan any)
-    errCh := make(chan error, 1)
+    errCh := make(chan error)
     // Read and parse.
     go func() {
+        var err error
+
+        defer func() {
+            if err != nil {
+                errCh <- err
+            }
+            close(errCh)
+        }()
+
         defer close(filterIn)
-        defer close(errCh)
 
         scanner := bufio.NewScanner(l.Input)
         for scanner.Scan() {
@@ -46,8 +54,7 @@ func (l *L[T, K]) Parse(up chan<- K) error {
         }
 
         if err := scanner.Err(); err != nil {
-            // FIXME: Return this error?
-            errCh <- fmt.Errorf("log.L.Parse(): Error: Scanner returned '%v'\n", err)
+            err = fmt.Errorf("log.L.Parse(): Scanner error '%v'\n", err)
             return
         }
     }()
