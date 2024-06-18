@@ -16,7 +16,7 @@ type P[T any] struct {
     Match []string  // Regexp submatches.
     Data T          // Current parsed result.
 
-    items chan T
+    items chan<- T
 }
 
 // NewP() creates new parser.
@@ -63,26 +63,20 @@ func Done[T any](p *P[T]) Fn[T] {
     return nil
 }
 
-// Run() starts async parsing by calling specified parsing function. Results
-// (if any) will be delivered through returned channel.
-func (p *P[T]) Run(s string) <-chan T {
-    p.items = make(chan T)
+// Run() starts async parsing by calling parsing function fn. Results (if any)
+// will be send to specified channel.
+func (p *P[T]) Run(out chan<- T, s string) {
+    p.items = out
 
-    go func() {
-        defer close(p.items)
-
-        p.Match = p.rx.FindStringSubmatch(s)
-        if len(p.Match) > 0 {
-            fmt.Printf("parser.P.Run(): Initial submatches %#v\n", p.Match)
-            for f := p.Next(p.fn); f != nil; {
-                f = f(p)
-            }
-
-        } else {
-            fmt.Printf("parser.P.Run(): Rx does not match\n")
+    p.Match = p.rx.FindStringSubmatch(s)
+    if len(p.Match) > 0 {
+        fmt.Printf("parser.P.Run(): Initial submatches %#v\n", p.Match)
+        for f := p.Next(p.fn); f != nil; {
+            f = f(p)
         }
-    }()
 
-    return p.items
+    } else {
+        fmt.Printf("parser.P.Run(): Rx does not match\n")
+    }
 }
 

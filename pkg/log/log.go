@@ -29,55 +29,36 @@ func (l *L[T, K]) Parse() <-chan K {
     filterIn := make(chan K)
 
     done := make(chan any)
-    confirmDone := make(chan any)
+    // Read and parse.
     go func() {
-        defer close(confirmDone)
         defer close(filterIn)
 
         scanner := bufio.NewScanner(l.Input)
-        // 1. Read first line.
-        // 2. Find oldest interval, where t.Before(start) is true
-        // 3. Init end to 0
-        // 4. If t.After(end) send result and update te.
-        // 5. At each te update compare it with next tstart. If it's after,
-        //    merge intervals.
-        //  During initial interval selection and merge, check Mtime against
-        //  te of choosed interval. If mtime is before, shortcicuit parsing.
         for scanner.Scan() {
             fmt.Printf("log.L.Parse(): Read '%s'\n", scanner.Text())
-            // FIXME: Send 'filterIn' channel directly to parser instead of
-            // resending its results here.
-            ch := l.Parser.Run(scanner.Text())
-            fmt.Printf("----- Channel opened %p, %p\n", ch, &l.Parser.Data)
-            //l.Parser.Run(filterIn, scanner.Text())
-            for d := range ch {
-                select {
-                case filterIn<- d:
-                case <-done:
-                    for range ch {
-                    }
-                    return
-                }
-            }
-            _, ok := <- ch
-            if !ok {
-                fmt.Printf("----- Channel CLOSED %p\n", ch)
+            // To run several parsers concurrently, i need to use different
+            // parser.P struct-s for them.
+            l.Parser.Run(filterIn, scanner.Text())
+            select {
+            case <-done: return
+            default:
             }
         }
 
         if err := scanner.Err(); err != nil {
+            // FIXME: Just return error?
             panic(fmt.Sprintf("log.L.Parse(): Scanner error %v\n", err))
         }
     }()
 
+    // Filter and send upstream.
     go func() {
         defer close(upstream)
 
-        //l.Intervals = intervals.FilterBy(l.Intervals, filterIn, upstream, l.ModTime)
         l.Intervals.Filter(upstream, filterIn, l.ModTime)
         close(done)
-        // FIXME: Do not use this sync hack!
-        <- confirmDone
+        for range filterIn {
+        }
     }()
 
     return upstream
