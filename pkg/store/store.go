@@ -97,7 +97,10 @@ func (s *Store) ReadLogs(l *log.L[Time, Result], files []string) {
         ch := make(chan Result)
         go func() {
             defer close(ch)
-            l.Parse(ch)
+            if err := l.Parse(ch); err != nil {
+                fmt.Printf("Error during reading '%v' file: '%v'", f, err)
+                return
+            }
         }()
         for d := range ch {
             s.Add(&d)

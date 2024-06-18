@@ -23,13 +23,15 @@ type L[T Ord[T], K ToOrd[T]] struct {
 // Parse() reads 'L.Input' reader line by line calling 'L.Parser' on each
 // line and resending its results to returned channel. Line parsers are run
 // synchronously.
-func (l *L[T, K]) Parse(up chan<- K) {
+func (l *L[T, K]) Parse(up chan<- K) error {
     filterIn := make(chan K)
 
     done := make(chan any)
+    errCh := make(chan error, 1)
     // Read and parse.
     go func() {
         defer close(filterIn)
+        defer close(errCh)
 
         scanner := bufio.NewScanner(l.Input)
         for scanner.Scan() {
@@ -45,7 +47,8 @@ func (l *L[T, K]) Parse(up chan<- K) {
 
         if err := scanner.Err(); err != nil {
             // FIXME: Return this error?
-            fmt.Printf("log.L.Parse(): Error: Scanner returned '%v'\n", err)
+            errCh <- fmt.Errorf("log.L.Parse(): Error: Scanner returned '%v'\n", err)
+            return
         }
     }()
 
@@ -54,8 +57,12 @@ func (l *L[T, K]) Parse(up chan<- K) {
     // Consume all remaining already parsed tokens.
     for range filterIn {
     }
+    err, ok := <-errCh
+    if ok && err != nil {
+        return err
+    }
 
-    return
+    return nil
 }
 
 // TODO: Open gzip-ed files properly.
