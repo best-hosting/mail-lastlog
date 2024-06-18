@@ -91,14 +91,15 @@ func (s *Store) Add(d *Result) {
 func (s *Store) ReadLogs(l *log.L[Time, Result], files []string) {
     for _, f := range files {
         if err := log.OpenFile[Result](l, f); err != nil {
-            panic(err)
+            fmt.Printf("Error opening file '%v': %v\n", f, err)
+            continue
         }
 
         ch := make(chan Result)
         go func() {
             defer close(ch)
             if err := l.Parse(ch); err != nil {
-                fmt.Printf("Error during reading '%v' file: '%v'", f, err)
+                fmt.Printf("Error reading file '%v': %v\n", f, err)
                 return
             }
         }()

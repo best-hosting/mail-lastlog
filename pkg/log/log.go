@@ -6,6 +6,8 @@ import (
     "bufio"
     "io"
     "os"
+    "path/filepath"
+    "compress/gzip"
 
     . "bh/lastlog/pkg/types"
     "bh/lastlog/pkg/parser"
@@ -72,8 +74,9 @@ func (l *L[T, K]) Parse(up chan<- K) error {
     return nil
 }
 
-// TODO: Open gzip-ed files properly.
 func OpenFile[K ToOrd[Time]](l *L[Time, K], file string) error {
+    var err error
+
     fi, err := os.Stat(file)
     if err != nil {
         return err
@@ -84,7 +87,21 @@ func OpenFile[K ToOrd[Time]](l *L[Time, K], file string) error {
     if err != nil {
         return err
     }
-    l.Input = f
+    defer func() {
+        if err != nil {
+            f.Close()
+        }
+    }()
+
+    if filepath.Ext(file) == ".gz" {
+        z, err := gzip.NewReader(f)
+        if err != nil {
+            return err
+        }
+        l.Input = z
+    } else {
+        l.Input = f
+    }
 
     return nil
 }
