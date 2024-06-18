@@ -94,10 +94,14 @@ func (s *Store) ReadLogs(l *log.L[Time, Result], files []string) {
             panic(err)
         }
 
-        for d := range l.Parse() {
+        ch := make(chan Result)
+        go func() {
+            defer close(ch)
+            l.Parse(ch)
+        }()
+        for d := range ch {
             s.Add(&d)
         }
     }
-    //s.Intervals[file] = &l.Intervals
 }
 
