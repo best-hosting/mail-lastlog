@@ -1,0 +1,10 @@
+{{ with resources.Get "js/jquery.min.js" | resources.Fingerprint "sha384" }}
+    <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
+{{- end -}}
+
+{{- $js := resources.Match "js/*.js" -}}
+{{- range where $js "Name" "ne" "/js/jquery.min.js" }}
+    {{ with . | resources.Fingerprint "sha384" -}}
+        <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
+    {{- end }}
+{{- end }}

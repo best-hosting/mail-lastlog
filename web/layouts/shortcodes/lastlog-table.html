@@ -1,0 +1,26 @@
+<div class="table-responsive">
+  <table class="table table-striped table-hover table-bordered" data-toggle="table" data-search="true" data-show-columns="true">
+    <thead>
+      <tr>
+        <th scope="col" data-sortable="true">Mail</th>
+        <th scope="col" data-sortable="true">Time</th>
+        <th scope="col" data-sortable="true">IP</th>
+        <th scope="col" data-sortable="true">Method</th>
+        <th scope="col" data-sortable="true">Count</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      {{- range $mail, $data := sort .Site.Data.lastlog.Data "last.last" }}
+        <tr>
+          <th scope="row">{{ .user }}</th>
+          <td>{{ .last.last }}</td>
+          <td>{{ .last.ip }}</td>
+          <td>{{ .last.method }}</td>
+          <td>{{ .last.count }}</td>
+        </tr>
+      {{ end -}}
+
+    </tbody>
+  </table>
+</div>

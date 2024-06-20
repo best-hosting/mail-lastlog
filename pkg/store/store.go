@@ -15,6 +15,8 @@ import (
 type IPData struct {
     IP IP   `json:"ip"`
     Method Method   `json:"method"`
+    // FIXME: Rename to Time, because i already have last field in IPData.
+    // FIXME: Marshal Time in different format.
     Last time.Time  `json:"last"`
     Count int   `json:"count"`
 }

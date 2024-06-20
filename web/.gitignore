@@ -1,0 +1,4 @@
+.hugo_build.lock
+[0-9].html
+data/lastlog.json
+public/
