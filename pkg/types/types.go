@@ -4,6 +4,7 @@ package types
 import (
     "fmt"
     "time"
+    "encoding/json"
 )
 
 // By using generics,
@@ -39,6 +40,43 @@ var _ Ord[Time] = Time{}
 func (t Time) Lt(t1 Time) bool { return t.Before(t1.Time) }
 func (t Time) Le(t1 Time) bool { return t.Lt(t1) || t.Equal(t1.Time) }
 
+var _ json.Marshaler = Time{}
+func (t Time) MarshalJSON() ([]byte, error) {
+    ft := time.DateTime + " -07:00"
+    b := make([]byte, 0, len(ft) + len(`""`))
+    b = append(b, '"')
+    b = t.AppendFormat(b, ft)
+    b = append(b, '"')
+    return b, nil
+}
+
+// I can't overwrite time.Time's json encoding by implementing TextMarshaler
+// interface for Time{}, because it embeds time.Time and therefore inherits
+// its method set. And because time.Time already have implemented
+// json.Marshaler interface, it'll be used instead of my TextMarshaler here.
+//
+// But i really should implement TextMarshaler/Unmarshaler to avoid unescaping
+// json encoded string, which is not trivial, see time.UnmarshalJSON() code
+// comments.
+//
+// On the other hand, i still want to embed time.Time to preserve all its
+// methods and making Time{} wrapper almost invisible.
+//
+// Thus, as a workaround UnmarshalJSON() first unmarshals to string and then
+// parses it.
+var _ json.Unmarshaler = (*Time)(nil)
+func (t *Time) UnmarshalJSON(b []byte) error {
+    var s string
+    if err := json.Unmarshal(b, &s); err != nil {
+        return err
+    }
+    v, err := time.Parse(time.DateTime + " -07:00", string(b))
+    if err != nil {
+        return err
+    }
+    t.Time = v
+    return nil
+}
 
 // FIXME: Use net/mail.Address.
 type User string

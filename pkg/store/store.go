@@ -3,7 +3,6 @@ package store
 
 import (
     "fmt"
-    "time"
     //"net/mail"
     "strings"
 
@@ -15,18 +14,15 @@ import (
 type IPData struct {
     IP IP   `json:"ip"`
     Method Method   `json:"method"`
-    // FIXME: Rename to Time, because i already have last field in IPData.
-    // FIXME: Marshal Time in different format.
-    Last time.Time  `json:"last"`
+    Time Time  `json:"time"`
     Count int   `json:"count"`
 }
 
 func (v *IPData) String() string {
-    return fmt.Sprintf("IPData{%v, %v, %v, %v}", v.Last.Format("02/01 15:04:05"), v.IP, v.Method, v.Count)
+    return fmt.Sprintf("IPData{%v, %v, %v, %v}", v.Time.Format("2006/01/02 15:04:05"), v.IP, v.Method, v.Count)
 }
 
 type UserData struct {
-    // FIXME: Does not need this.
     User User   `json:"user"`
     Last *IPData    `json:"last"`
     Data map[IP]map[Method]*IPData  `json:"data"`
@@ -55,36 +51,36 @@ func New() *Store {
     return &s
 }
 
-func (s *Store) Add(d *Result) {
-    if _, ok := s.Data[d.User]; !ok {
-        s.Data[d.User] = &UserData {
-                            User: d.User,
+func (s *Store) Add(r *Result) {
+    if _, ok := s.Data[r.User]; !ok {
+        s.Data[r.User] = &UserData {
+                            User: r.User,
                             Data: make(map[IP]map[Method]*IPData),
                         }
     }
-    ud := s.Data[d.User]
+    ud := s.Data[r.User]
 
-    if _, ok := ud.Data[d.IP]; !ok {
-        ud.Data[d.IP] = make(map[Method]*IPData)
+    if _, ok := ud.Data[r.IP]; !ok {
+        ud.Data[r.IP] = make(map[Method]*IPData)
     }
 
-    if v, ok := ud.Data[d.IP][d.Method]; !ok {
-        v = &IPData {
-                IP: d.IP,
-                Method: d.Method,
-                Last: d.Time,
+    if ipd, ok := ud.Data[r.IP][r.Method]; !ok {
+        v := IPData {
+                IP: r.IP,
+                Method: r.Method,
+                Time: Time{r.Time},
                 Count: 1,
             }
-        ud.Data[d.IP][d.Method] = v
-        ud.Last = v
+        ud.Data[r.IP][r.Method] = &v
+        ud.Last = &v
+
     } else {
-        v.Count += 1
-        // FIXME: Should i check, that time does not go backward?
-        if d.Time.After(v.Last) {
-            v.Last = d.Time
+        ipd.Count += 1
+        if ipd.Time.Before(r.Time) {
+            ipd.Time = Time{r.Time}
         }
-        if d.Time.After(ud.Last.Last) {
-            ud.Last = v
+        if ud.Last.Time.Before(r.Time) {
+            ud.Last = ipd
         }
     }
     fmt.Printf("store.Add(): Curr %v\n", s.Data)
@@ -106,8 +102,8 @@ func (s *Store) ReadLogs(l *log.L[Time, Result], files []string) {
             }
         }()
 
-        for d := range ch {
-            s.Add(&d)
+        for r := range ch {
+            s.Add(&r)
         }
     }
 }

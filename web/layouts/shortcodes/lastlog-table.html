@@ -11,10 +11,10 @@
     </thead>
     <tbody>
 
-      {{- range $mail, $data := sort .Site.Data.lastlog.Data "last.last" }}
+      {{- range $data := sort .Site.Data.lastlog.Data "last.time" }}
         <tr>
           <th scope="row">{{ .user }}</th>
-          <td>{{ .last.last }}</td>
+          <td>{{ .last.time }}</td>
           <td>{{ .last.ip }}</td>
           <td>{{ .last.method }}</td>
           <td>{{ .last.count }}</td>

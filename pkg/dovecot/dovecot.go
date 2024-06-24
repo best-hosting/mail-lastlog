@@ -46,7 +46,7 @@ func parseTime(mtime *Time, p *parser.P[Result]) parser.Fn[Result] {
     // File mtime should always be after any timestamp inside file. If it's
     // not the case, record's timestamp is from previous year (this is only
     // true, if file contains strictly less, than a year of data, though).
-    if t.After(mtime.Time) {
+    if mtime.Before(t) {
         t = t.AddDate(-1, 0, 0)
     }
 
