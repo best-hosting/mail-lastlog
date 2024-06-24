@@ -25,6 +25,7 @@ import (
 type Config struct {
     DovecotLogs []string
     Exim4Logs []string
+    Store string
 }
 
 var confFile string
@@ -33,17 +34,9 @@ const (
     confFileUsage = "Path to config file"
 )
 
-var storeFile string
-const (
-    defDbFile = "./mail-lastlog.json"
-    storeFileUsage = "Path to lastlog db file"
-)
-
 func init() {
     flag.StringVar(&confFile, "config", defConfFile, confFileUsage)
     flag.StringVar(&confFile, "c", defConfFile, confFileUsage + " (shorthand)")
-
-    flag.StringVar(&storeFile, "store", defDbFile, storeFileUsage)
 }
 
 func readJson(file string, v any) error {
@@ -101,9 +94,9 @@ func main() {
         panic(err)
     }
 
-    fmt.Printf("main(): Use db file '%v'\n", storeFile)
+    fmt.Printf("main(): Use db file '%v'\n", conf.Store)
     store := store.New()
-    readJson(storeFile, store)
+    readJson(conf.Store, store)
 
     if _, ok := store.Intervals["Dovecot"]; !ok {
         store.Intervals["Dovecot"] = &intervals.Intervals[Time, Result]{}
@@ -111,20 +104,8 @@ func main() {
     dl := dovecot.NewLog(store.Intervals["Dovecot"])
     store.ReadLogs(dl, conf.DovecotLogs)
 
-    if err := writeJson(storeFile, store); err != nil {
+    if err := writeJson(conf.Store, store); err != nil {
         panic(err)
     }
-    // FIXME: Parse corresponding log's part of json db using corresponding
-    // package's parser. And serialize in the same way.
-    // Or just use Intervals.pkg.{ []file, I } for save.
-
-    /*
-    el, err := exim4.NewLog("2.log")
-    if err != nil {
-        panic(err)
-    }
-    all.readLog(el)
-    */
-
 }
 
