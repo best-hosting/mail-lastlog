@@ -83,17 +83,7 @@ func writeJson(file string, v any) error {
     return nil
 }
 
-// TODO: Write tests running against test/data .
-func main() {
-    flag.Parse()
-
-
-    fmt.Printf("main(): Use config file '%v''\n", confFile)
-    conf := Config{}
-    if err := readJson(confFile, &conf); err != nil {
-        panic(err)
-    }
-
+func run(conf Config) error {
     fmt.Printf("main(): Use db file '%v'\n", conf.Store)
     store := store.New()
     readJson(conf.Store, store)
@@ -105,7 +95,19 @@ func main() {
     store.ReadLogs(dl, conf.DovecotLogs)
 
     if err := writeJson(conf.Store, store); err != nil {
+        return err
+    }
+    return nil
+}
+
+func main() {
+    flag.Parse()
+
+    fmt.Printf("main(): Use config file '%v''\n", confFile)
+    conf := Config{}
+    if err := readJson(confFile, &conf); err != nil {
         panic(err)
     }
+    run(conf)
 }
 
