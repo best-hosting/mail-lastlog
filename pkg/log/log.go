@@ -8,7 +8,7 @@ import (
     "path/filepath"
     "compress/gzip"
 
-    . "bh/lastlog/pkg/types"
+    . "bh/lastlog/pkg/common"
     "bh/lastlog/pkg/parser"
     "bh/lastlog/pkg/intervals"
 )

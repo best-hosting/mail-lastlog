@@ -4,7 +4,7 @@ package parser
 import (
     "regexp"
 
-    . "bh/lastlog/pkg/types"
+    . "bh/lastlog/pkg/common"
 )
 
 // Parser function.

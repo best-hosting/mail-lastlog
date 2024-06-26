@@ -6,7 +6,7 @@ import (
     "sync"
     "testing"
 
-    . "bh/lastlog/pkg/types"
+    . "bh/lastlog/pkg/common"
 )
 
 type myData struct {

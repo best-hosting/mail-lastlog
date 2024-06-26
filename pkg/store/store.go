@@ -6,7 +6,7 @@ import (
     //"net/mail"
     "strings"
 
-    . "bh/lastlog/pkg/types"
+    . "bh/lastlog/pkg/common"
     "bh/lastlog/pkg/log"
     "bh/lastlog/pkg/intervals"
 )

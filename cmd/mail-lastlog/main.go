@@ -10,7 +10,7 @@ import (
     "path/filepath"
 
     //"bh/lastlog/pkg/parser"
-    . "bh/lastlog/pkg/types"
+    . "bh/lastlog/pkg/common"
     "bh/lastlog/pkg/dovecot"
     "bh/lastlog/pkg/store"
     "bh/lastlog/pkg/intervals"

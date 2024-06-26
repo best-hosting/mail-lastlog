@@ -4,7 +4,7 @@ package intervals
 import (
     "fmt"
 
-    . "bh/lastlog/pkg/types"
+    . "bh/lastlog/pkg/common"
 )
 
 // By using generics,

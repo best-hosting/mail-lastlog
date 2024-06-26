@@ -1,5 +1,5 @@
 
-package types
+package common
 
 import (
     "log"
