@@ -83,13 +83,13 @@ func (s *Store) Add(r *Result) {
             ud.Last = ipd
         }
     }
-    fmt.Printf("store.Add(): Curr %v\n", s.Data)
+    Logfn("Curr %v", s.Data)
 }
 
 func (s *Store) ReadLogs(l *log.L[Time, Result], files []string) {
     for _, f := range files {
         if err := log.OpenFile[Result](l, f); err != nil {
-            fmt.Printf("Error opening file '%v': %v\n", f, err)
+            LogErr("Can't open file '%v': %v", f, err)
             continue
         }
 
@@ -97,7 +97,7 @@ func (s *Store) ReadLogs(l *log.L[Time, Result], files []string) {
         go func() {
             defer close(ch)
             if err := l.Parse(ch); err != nil {
-                fmt.Printf("Error reading file '%v': %v\n", f, err)
+                LogErr("Can't read file '%v': %v", f, err)
                 return
             }
         }()

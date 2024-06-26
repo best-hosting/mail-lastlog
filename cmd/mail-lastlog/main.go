@@ -2,7 +2,6 @@
 package main
 
 import (
-    "fmt"
     //"net/mail"
     "encoding/json"
     "flag"
@@ -54,7 +53,7 @@ func readJson(file string, v any) error {
     if err := json.Unmarshal(bs, v); err != nil {
         return err
     }
-    fmt.Printf("readJson(): Read from '%v':\n%#v\n", file, v)
+    Logfn("Read from '%v':\n\t%#v", file, v)
 
     return nil
 }
@@ -64,7 +63,7 @@ func writeJson(file string, v any) error {
     if err != nil {
         return err
     }
-    fmt.Printf("writeJson(): Writing to '%v':\n%s\n", file, string(bs))
+    Logfn("Writing to '%v':\n%s", file, string(bs))
 
     f, err := os.CreateTemp(filepath.Dir(file), "mail-lastlog")
     if err != nil {
@@ -84,7 +83,7 @@ func writeJson(file string, v any) error {
 }
 
 func run(conf Config) error {
-    fmt.Printf("main(): Use db file '%v'\n", conf.Store)
+    Logfn("Use db file '%v'", conf.Store)
     store := store.New()
     readJson(conf.Store, store)
 
@@ -103,7 +102,7 @@ func run(conf Config) error {
 func main() {
     flag.Parse()
 
-    fmt.Printf("main(): Use config file '%v''\n", confFile)
+    Logfn("Use config file '%v''", confFile)
     conf := Config{}
     if err := readJson(confFile, &conf); err != nil {
         panic(err)

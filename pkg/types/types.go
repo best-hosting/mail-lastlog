@@ -2,7 +2,6 @@
 package types
 
 import (
-    "fmt"
     "time"
     "encoding/json"
 )
@@ -97,7 +96,7 @@ func ToMethod(v string) (Method, error) {
         case "smtp": return Smtp, nil
         case "web": return Web, nil
     }
-    return UnknownMethod, fmt.Errorf("Unknown method %v", v)
+    return UnknownMethod, LogErr("Unknown method %v", v)
 }
 
 type Result struct {

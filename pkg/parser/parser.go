@@ -2,8 +2,9 @@
 package parser
 
 import (
-    "fmt"
     "regexp"
+
+    . "bh/lastlog/pkg/types"
 )
 
 // Parser function.
@@ -30,16 +31,16 @@ func NewP[T any](rx string, fn Fn[T]) *P[T] {
 
 // Emit() sends current parsed data to results channel.
 func (p *P[T]) Emit() {
-    fmt.Printf("parser.P.Emit(): Emit %#v\n", p.Data)
+    Logfn("%#v", p.Data)
     p.items<- p.Data
 }
 
 // NextN() advances 'P.Match' on k positions forward.
 func (p *P[T]) NextN(k int, f Fn[T]) Fn[T] {
     if k < 1 {
-        panic(fmt.Sprintf("parser.P.NextN(): Error: Can't advance on less, than 1 submatch: %v", k))
+        LogFatal("parser.P.NextN(): Error: Can't advance on less, than 1 submatch: %v", k)
     } else if len(p.Match) <= k {
-        panic(fmt.Sprintf("parser.P.NextN(): Too few submatches: advance on %v requested, but i have only %v (%#v)", k, len(p.Match), p.Match))
+        LogFatal("Too few submatches: advance on %v requested, but i have only %v submatch(es) left (%#v)", k, len(p.Match), p.Match)
     }
     p.Match = p.Match[k:]
     return f
@@ -52,13 +53,13 @@ func (p *P[T]) Next(f Fn[T]) Fn[T] {
 
 // Fail() terminates parsing discarding current result.
 func Fail[T any](p *P[T]) Fn[T] {
-    fmt.Printf("parser.Fail(): Failed to parse with %#v\n", p.Data)
+    Logfn("%#v", p.Data)
     return nil
 }
 
 // Done() terminates parsing sending current result.
 func Done[T any](p *P[T]) Fn[T] {
-    fmt.Printf("parser.Done(): Done with %#v\n", p.Data)
+    Logfn("%#v", p.Data)
     p.Emit()
     return nil
 }
@@ -70,13 +71,13 @@ func (p *P[T]) Run(out chan<- T, s string) {
 
     p.Match = p.rx.FindStringSubmatch(s)
     if len(p.Match) > 0 {
-        fmt.Printf("parser.P.Run(): Initial submatches %#v\n", p.Match)
+        Logfn("Initial submatches %#v", p.Match)
         for f := p.Next(p.fn); f != nil; {
             f = f(p)
         }
 
     } else {
-        fmt.Printf("parser.P.Run(): Rx does not match\n")
+        Logfn("Rx does not match")
     }
 }
 

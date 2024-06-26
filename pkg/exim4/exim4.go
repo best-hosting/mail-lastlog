@@ -3,7 +3,6 @@ package exim4
 
 import (
     "os"
-    "fmt"
     "time"
     "net"
 
@@ -34,7 +33,7 @@ func NewLog(file string) (*log.L[Time, Result], error) {
 func parseTime (p *parser.P[Result]) parser.Fn[Result] {
     t, err := time.Parse("2006-01-02 15:04:05", p.Match[0])
     if err != nil {
-        fmt.Printf("exim4.parseTime(): Error: Failed to parse time with '%v'\n", err)
+        LogErr("Failed to parse time: %v", err)
         return parser.Fail
     }
 
@@ -45,7 +44,7 @@ func parseTime (p *parser.P[Result]) parser.Fn[Result] {
 func parseIP(p *parser.P[Result]) parser.Fn[Result] {
     v := net.ParseIP(p.Match[0])
     if v == nil {
-        fmt.Printf("exim4.parseIP(): Can't parse ip " + p.Match[0])
+        LogErr("Can't parse ip '%v'", p.Match[0])
         return parser.Fail
     }
 
@@ -54,7 +53,6 @@ func parseIP(p *parser.P[Result]) parser.Fn[Result] {
 }
 
 func parseUser(p *parser.P[Result]) parser.Fn[Result] {
-    // FIXME: Parse mail address.
     p.Data.User = User(p.Match[0])
 
     return parseMethod

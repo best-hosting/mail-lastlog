@@ -37,12 +37,11 @@ func parseTime(mtime *Time, p *parser.P[Result]) parser.Fn[Result] {
     // Parse with current year and fix later, if that's wrong.
     t, err := time.ParseInLocation("2006 Jan _2 15:04:05", fmt.Sprintf("%v %s", mtime.Year(), p.Match[0]), time.Local)
     if err != nil {
-        fmt.Printf("dovecot.parseTime(): Error: Failed to parse time with '%v'\n", err)
+        LogErr("Failed to parse time: %v", err)
         return parser.Fail
     }
-    //fmt.Printf("Parsed time %v\n", t.Format("2006/01/02 15:04:06"))
 
-    fmt.Printf("dovecot.parseTime(): Got mtime %v\n", mtime)
+    Logfn("Got mtime %v", mtime)
     // File mtime should always be after any timestamp inside file. If it's
     // not the case, record's timestamp is from previous year (this is only
     // true, if file contains strictly less, than a year of data, though).
@@ -57,7 +56,7 @@ func parseTime(mtime *Time, p *parser.P[Result]) parser.Fn[Result] {
 func parseMethod(p *parser.P[Result]) parser.Fn[Result] {
     m, err := ToMethod(p.Match[0])
     if err != nil {
-        fmt.Printf("dovecot.parseMethod(): Error: Failed to parse method with '%v'\n", err)
+        LogErr("Failed to parse method with '%v'", err)
         return parser.Fail
     }
     p.Data.Method = m
@@ -74,7 +73,7 @@ func parseUser(p *parser.P[Result]) parser.Fn[Result] {
 func parseIP(p *parser.P[Result]) parser.Fn[Result] {
     v := net.ParseIP(p.Match[0])
     if v == nil {
-        fmt.Printf("dovecot.parseIP(): Error: Can't parse ip " + p.Match[0])
+        LogErr("Can't parse ip '%v'", p.Match[0])
         return parser.Fail
     }
 

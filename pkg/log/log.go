@@ -2,7 +2,6 @@
 package log
 
 import (
-    "fmt"
     "bufio"
     "io"
     "os"
@@ -45,7 +44,7 @@ func (l *L[T, K]) Parse(up chan<- K) error {
 
         scanner := bufio.NewScanner(l.Input)
         for scanner.Scan() {
-            fmt.Printf("log.L.Parse(): Read '%s'\n", scanner.Text())
+            Logfn("Read '%s'", scanner.Text())
             // To run several parsers concurrently, i need to use different
             // parser.P struct-s for them.
             l.Parser.Run(filterIn, scanner.Text())
@@ -56,7 +55,7 @@ func (l *L[T, K]) Parse(up chan<- K) error {
         }
 
         if err := scanner.Err(); err != nil {
-            err = fmt.Errorf("log.L.Parse(): Scanner error '%v'\n", err)
+            err = LogErr("Scanner error '%v'", err)
             return
         }
     }()
