@@ -72,18 +72,11 @@ func logPrefix(skip int, cb func (string)) {
     cb(fmt.Sprintf("%v:%v | %v(): ", f, l, fn))
 }
 
-func Logf(format string, vs ...interface{}) {
-    f := func(pref string) {
-        Logger.Print(pref + fmt.Sprintf(format, vs...))
-    }
-    // Skip one frame in call stack: this function.
-    logPrefix(1, f)
-}
-
 func Logfn(format string, vs ...interface{}) {
     f := func(pref string) {
         Logger.Print(pref + fmt.Sprintf(format + "\n", vs...))
     }
+    // Skip one frame in call stack: this function.
     logPrefix(1, f)
 }
 

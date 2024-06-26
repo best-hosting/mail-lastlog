@@ -83,7 +83,7 @@ func (s *Store) Add(r *Result) {
             ud.Last = ipd
         }
     }
-    Logfn("Curr %v", s.Data)
+    LogDfn("Curr %v", s.Data)
 }
 
 func (s *Store) ReadLogs(l *log.L[Time, Result], files []string) {

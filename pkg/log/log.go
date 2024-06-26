@@ -44,7 +44,7 @@ func (l *L[T, K]) Parse(up chan<- K) error {
 
         scanner := bufio.NewScanner(l.Input)
         for scanner.Scan() {
-            Logfn("Read '%s'", scanner.Text())
+            LogDfn("Read '%s'", scanner.Text())
             // To run several parsers concurrently, i need to use different
             // parser.P struct-s for them.
             l.Parser.Run(filterIn, scanner.Text())

@@ -32,21 +32,21 @@ func (iv *Intervals[T, K]) Filter(out chan<- K, in <-chan K, last T) {
         iv.I = make([]I[T], 0)
     }
     ts := iv.I
-    Logfn("## Started with last %v, and intervals %v", last, ts)
+    LogDfn("## Started with last %v, and intervals %v", last, ts)
     v, ok := <-in
     if !ok {
-        Logfn("End of stream")
+        LogDfn("End of stream")
         return
     }
 
     p := v.ToOrd()
-    Logfn("Got p = %v from %v", p, v)
+    LogDfn("Got p = %v from %v", p, v)
 
     // j is index of next (strictly greater) interval. It's possible, that j == len(ts).
     var j int
     for ; j < len(ts) && ts[j].Start.Le(p); j++ {
     }
-    Logfn("Found j = %v", j)
+    LogDfn("Found j = %v", j)
 
     // i is index where to insert new interval t. Thus i >= 0 always.
     var i int
@@ -56,75 +56,75 @@ func (iv *Intervals[T, K]) Filter(out chan<- K, in <-chan K, last T) {
         t = ts[i]
 
         if last.Le(t.End) {
-            Logfn("Completely contained in (%v) %v, discard all", i, t)
+            LogDfn("Completely contained in (%v) %v, discard all", i, t)
             return
         }
 
-        Logfn("Discard %v", v)
+        LogDfn("Discard %v", v)
 
     } else {
         i = j
         t = I[T]{p, p}
-        Logfn("Send %v", v)
+        LogDfn("Send %v", v)
         out<- v
     }
-    Logfn("Found i = %v, t = %v", i, t)
+    LogDfn("Found i = %v, t = %v", i, t)
 
     for {
         v, ok := <-in
         if !ok {
-            Logfn("End of stream")
+            LogDfn("End of stream")
             break
         }
 
         p = v.ToOrd()
-        Logfn("Got p = %v from %v", p, v)
+        LogDfn("Got p = %v from %v", p, v)
 
         if t.End.Lt(p) {
             for ; j < len(ts) && ts[j].End.Lt(p); j++ {
-                Logfn("Skip interval j = %v %v", j, ts[j])
+                LogDfn("Skip interval j = %v %v", j, ts[j])
             }
 
             if j < len(ts) && ts[j].Start.Le(p) {
-                Logfn("Merge with interval (%v) %v", j, ts[j])
+                LogDfn("Merge with interval (%v) %v", j, ts[j])
                 t.End = ts[j].End
                 j += 1
 
                 if last.Le(t.End) {
-                    Logfn("Completely contained in %v, discard the rest", t)
+                    LogDfn("Completely contained in %v, discard the rest", t)
                     break
                 }
 
-                Logfn("Discard %v", v)
+                LogDfn("Discard %v", v)
 
             } else {
-                Logfn("Update End to %v", p)
+                LogDfn("Update End to %v", p)
                 t.End = p
-                Logfn("Send %v", v)
+                LogDfn("Send %v", v)
                 out<- v
             }
 
         } else {
-            Logfn("Discard %v", v)
+            LogDfn("Discard %v", v)
         }
-        Logfn("Current interval %v", t)
+        LogDfn("Current interval %v", t)
     }
 
-    Logfn("Got indexes i = %v j = %v", i, j)
+    LogDfn("Got indexes i = %v j = %v", i, j)
     // j == i - insert new element
     // j - i == 1 - do nothing
     // j - i >  1 - remove merged elements
     if j == i {
-        Logfn("Insert new interval")
+        LogDfn("Insert new interval")
         ts = append(ts[:i], append(make([]I[T], 1), ts[i:]...)...)
     } else if j - i > 1 {
-        Logfn("Delete extra intervals")
+        LogDfn("Delete extra intervals")
         ts = append(ts[:i+1], ts[j:]...)
     }
     ts[i] = t
     iv.I = ts
 
-    Logfn("Resulting intervals %v", ts)
+    LogDfn("Resulting intervals %v", ts)
     return
 }
 

@@ -31,7 +31,7 @@ func NewP[T any](rx string, fn Fn[T]) *P[T] {
 
 // Emit() sends current parsed data to results channel.
 func (p *P[T]) Emit() {
-    Logfn("%#v", p.Data)
+    LogDfn("%#v", p.Data)
     p.items<- p.Data
 }
 
@@ -53,13 +53,13 @@ func (p *P[T]) Next(f Fn[T]) Fn[T] {
 
 // Fail() terminates parsing discarding current result.
 func Fail[T any](p *P[T]) Fn[T] {
-    Logfn("%#v", p.Data)
+    LogDfn("%#v", p.Data)
     return nil
 }
 
 // Done() terminates parsing sending current result.
 func Done[T any](p *P[T]) Fn[T] {
-    Logfn("%#v", p.Data)
+    LogDfn("%#v", p.Data)
     p.Emit()
     return nil
 }
@@ -71,13 +71,13 @@ func (p *P[T]) Run(out chan<- T, s string) {
 
     p.Match = p.rx.FindStringSubmatch(s)
     if len(p.Match) > 0 {
-        Logfn("Initial submatches %#v", p.Match)
+        LogDfn("Initial submatches %#v", p.Match)
         for f := p.Next(p.fn); f != nil; {
             f = f(p)
         }
 
     } else {
-        Logfn("Rx does not match")
+        LogDfn("Rx does not match")
     }
 }
 
