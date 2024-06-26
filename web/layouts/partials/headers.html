@@ -2,9 +2,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ if .Title }}{{ .Title }}{{ else }}{{ .Site.Title }}{{ end }}</title>
 
-{{/* TODO: Use links, if resource file not present */}}
-{{- range resources.Match "css/*.css" }}
-    {{ with . | resources.Fingerprint "sha384" -}}
-    <link href="{{ .RelPermalink }}" rel="stylesheet" integrity="{{ .Data.Integrity }}" crossorigin="anonymous">
-    {{- end }}
+{{- $foundCss := slice -}}
+{{- range resources.Match "css/**.css" -}}
+    {{- $foundCss = $foundCss | append (path.Base .) -}}
+    {{- with . | resources.Fingerprint "sha384" }}
+    <link href="{{ .RelPermalink }}" rel="stylesheet" integrity="{{ .Data.Integrity }}">
+    {{- end -}}
+{{- end -}}
+
+{{- range $name, $link := .Site.Params.css -}}
+    {{- if not (in $foundCss $name) }}
+        {{ if strings.HasPrefix $link "<link" -}}
+            {{/* "> fix syntax highlighting */}}
+            {{- $link | safeHTML -}}
+        {{ else -}}
+            <link rel="stylesheet" href="{{- $link -}}">
+        {{- end -}}
+    {{- end -}}
 {{- end }}

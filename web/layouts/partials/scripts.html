@@ -1,10 +1,33 @@
-{{ with resources.Get "js/jquery.min.js" | resources.Fingerprint "sha384" }}
+{{- $foundScripts := slice -}}
+
+{{- $jquery := .Site.Params.jquery | path.Base -}}
+{{- with resources.GetMatch (printf "scripts/jquery*/%v" $jquery) -}}
+    {{- $foundScripts = $foundScripts | append $jquery -}}
+    {{- with . | resources.Fingerprint "sha384" }}
     <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
+    {{- end -}}
+{{- else }}
+    <script src={{- .Site.Params.jquery -}}></script>
 {{- end -}}
 
-{{- $js := resources.Match "js/*.js" -}}
-{{- range where $js "Name" "ne" "/js/jquery.min.js" }}
-    {{ with . | resources.Fingerprint "sha384" -}}
-        <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
-    {{- end }}
+{{- range resources.Match "scripts/**.js" -}}
+    {{- if path.Base . | eq $jquery -}}
+        {{- continue -}}
+    {{- end -}}
+
+    {{- $foundScripts = $foundScripts | append (path.Base .) -}}
+    {{- with . | resources.Fingerprint "sha384" }}
+    <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}"></script>
+    {{- end -}}
+{{- end -}}
+
+{{- range $name, $link := .Site.Params.scripts -}}
+    {{- if not (in $foundScripts $name) }}
+        {{ if strings.HasPrefix $link "<script" -}}
+            {{/* </script>" fix syntax highlighting */}}
+            {{- $link | safeHTML -}}
+        {{ else -}}
+            <script src="{{- $link -}}"></script>
+        {{- end -}}
+    {{- end -}}
 {{- end }}
