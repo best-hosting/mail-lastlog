@@ -9,7 +9,7 @@ import (
     "path/filepath"
 )
 
-const testDir = "../../test/data"
+const testDir = "testdata"
 var conf Config
 var resStore string
 
