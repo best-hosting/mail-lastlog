@@ -52,6 +52,7 @@ func New() *Store {
 }
 
 func (s *Store) Add(r *Result) {
+    LogDfn("Adding %v", r)
     if _, ok := s.Data[r.User]; !ok {
         s.Data[r.User] = &UserData {
                             User: r.User,
@@ -72,7 +73,9 @@ func (s *Store) Add(r *Result) {
                 Count: 1,
             }
         ud.Data[r.IP][r.Method] = &v
-        ud.Last = &v
+        if ud.Last == nil || ud.Last.Time.Before(r.Time) {
+            ud.Last = &v
+        }
 
     } else {
         ipd.Count += 1
