@@ -54,8 +54,9 @@ func TestRun(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-    if err := readJson(filepath.Join(testDir, "mail-lastlog.conf"), &conf); err != nil {
-        panic(err)
+    cfFile := filepath.Join(testDir, "mail-lastlog.conf")
+    if err := readJson(cfFile, &conf); err != nil {
+        panic(fmt.Errorf("Error parsing config '%v': %v", cfFile, err))
     }
     resStore = conf.Store
     conf.Store = filepath.Join(testDir, "mail-lastlog.test.json")

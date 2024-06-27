@@ -9,12 +9,11 @@ import (
     "io"
     "path/filepath"
 
-    //"bh/lastlog/pkg/parser"
     . "bh/lastlog/pkg/common"
     "bh/lastlog/pkg/dovecot"
     "bh/lastlog/pkg/store"
     "bh/lastlog/pkg/intervals"
-    //"bh/lastlog/pkg/exim4"
+    "bh/lastlog/pkg/exim4"
 )
 
 // FIXME: Different per-user views: group all entries by IP (i.e. several IP
@@ -90,8 +89,14 @@ func run(conf Config) error {
     if _, ok := store.Intervals["Dovecot"]; !ok {
         store.Intervals["Dovecot"] = &intervals.Intervals[Time, Result]{}
     }
-    dl := dovecot.NewLog(store.Intervals["Dovecot"])
-    store.ReadLogs(dl, conf.DovecotLogs)
+    l := dovecot.NewLog(store.Intervals["Dovecot"])
+    store.ReadLogs(l, conf.DovecotLogs)
+
+    if _, ok := store.Intervals["Exim4"]; !ok {
+        store.Intervals["Exim4"] = &intervals.Intervals[Time, Result]{}
+    }
+    l = exim4.NewLog(store.Intervals["Exim4"])
+    store.ReadLogs(l, conf.Exim4Logs)
 
     if err := writeJson(conf.Store, store); err != nil {
         return err

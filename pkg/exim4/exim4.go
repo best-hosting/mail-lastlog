@@ -2,32 +2,31 @@
 package exim4
 
 import (
-    "os"
     "time"
     "net"
 
     . "bh/lastlog/pkg/common"
     "bh/lastlog/pkg/parser"
+    "bh/lastlog/pkg/intervals"
     "bh/lastlog/pkg/log"
 )
 
-func NewLog(file string) (*log.L[Time, Result], error) {
+func NewLog(i *intervals.Intervals[Time, Result]) *log.L[Time, Result] {
     l := log.L[Time, Result]{}
-
-    f, err := os.Open(file)
-    if err != nil {
-        return nil, err
+    if i == nil {
+        l.Intervals = &intervals.Intervals[Time, Result]{}
+    } else {
+        l.Intervals = i
     }
-    l.Input = f
 
     // Note, that such usage of submatches as here in IP address regexp is
     // wrong: i verify IP address in parseIP() anyway, so i need the simplest
     // regexp, which will capture the longest possible IP (i.e. i don't need
     // even try to filter out wrong IP-s at regexp level). It's written here
-    // only as example of p.NextN().
+    // only to show an example of p.NextN() usage.
     l.Parser = parser.NewP(`(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) [^ ]+ <= [^ ]+ H=[^ ]+ \[(([0-9]+.){3}[0-9]+)\] .* A=[^:]+:([^ ]+)`, parseTime)
 
-    return &l, nil
+    return &l
 }
 
 func parseTime (p *parser.P[Result]) parser.Fn[Result] {
